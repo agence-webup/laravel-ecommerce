@@ -45,7 +45,7 @@ class CartService
         } else {
             $cartProduct->setQuantity($quantity);
             // TODO: Check stock
-            $cart->addProduct($cartProduct);
+            $cart->putProduct($cartProduct);
         }
 
         $this->update($cart);

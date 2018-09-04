@@ -29,13 +29,15 @@ class Cart implements JsonSerializable
         $this->deliveryAddress = new Address();
         $this->invoiceAddress = new Address();
         $this->products = [];
+        $this->productCount = 0;
+        $this->productTotal = 0;
         $this->discounts = [];
         $this->shipping = new Shipping();
         $this->total = 0;
         $this->tax = 0;
     }
 
-    public function addProduct(CartProduct $product)
+    public function putProduct(CartProduct $product)
     {
         $this->products[$product->productId] = $product;
     }

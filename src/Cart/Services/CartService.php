@@ -2,12 +2,12 @@
 
 namespace Webup\Ecommerce\Cart\Services;
 
+use Illuminate\Support\Str;
+use Webup\Ecommerce\Cart\Entities\Address;
+use Webup\Ecommerce\Cart\Entities\Cart;
+use Webup\Ecommerce\Cart\Entities\CartProduct;
 use Webup\Ecommerce\Cart\Repositories\CartProductRepository;
 use Webup\Ecommerce\Cart\Repositories\CartRepository;
-use Webpatser\Uuid\Uuid;
-use Webup\Ecommerce\Cart\Entities\Cart;
-use Webup\Ecommerce\Cart\Entities\Address;
-use Webup\Ecommerce\Cart\Entities\CartProduct;
 
 class CartService
 {
@@ -20,15 +20,15 @@ class CartService
         $this->cartRepository = $cartRepository;
     }
 
-    public function createCart() : Cart
+    public function createCart(): Cart
     {
-        $cart = new Cart((string)Uuid::generate());
+        $cart = new Cart((string) Str::uuid());
         $this->cartRepository->save($cart);
 
         return $cart;
     }
 
-    public function getCart(string $cartId) : ? Cart
+    public function getCart(string $cartId): ?Cart
     {
         return $this->cartRepository->getById($cartId);
     }
@@ -51,7 +51,6 @@ class CartService
         $this->update($cart);
 
         $this->cartRepository->save($cart);
-
 
         return $cart;
     }

@@ -13,11 +13,12 @@ class Address implements JsonSerializable
     protected $company;
     protected $firstname;
     protected $lastname;
+    protected $email;
+    protected $phone;
     protected $address1;
     protected $address2;
     protected $postcode;
     protected $city;
-    protected $phone;
     protected $country;
 
     public function jsonSerialize()

@@ -19,6 +19,7 @@ class Cart implements JsonSerializable
     protected $productCount;
     protected $productTotal;
     protected $discounts;
+    protected $discountTotal;
     protected $shipping;
     protected $total;
     protected $tax;
@@ -32,6 +33,7 @@ class Cart implements JsonSerializable
         $this->productCount = 0;
         $this->productTotal = 0;
         $this->discounts = [];
+        $this->discountTotal = 0;
         $this->shipping = new Shipping();
         $this->total = 0;
         $this->tax = 0;
@@ -47,6 +49,16 @@ class Cart implements JsonSerializable
         if (array_key_exists($product->productId, $this->products)) {
             unset($this->products[$product->productId]);
         }
+    }
+
+    public function clearProducts()
+    {
+        $this->products = [];
+    }
+
+    public function clearDiscounts()
+    {
+        $this->discounts = [];
     }
 
     public function update()
@@ -66,14 +78,15 @@ class Cart implements JsonSerializable
         //     $discountRule->apply($this);
         // }
 
-        $discount = 0;
+        $discountTotal = 0;
         foreach ($this->discounts as $discount) {
-            $discount += $discount->amount;
+            $discountTotal += $discount->amount;
         }
+        $this->discountTotal = $discountTotal;
 
         // Frais de port selon l'addresse
         // $this->shipping = $this->shipping->calculate($this);
-        $this->total = $productTotal + $discount + $this->shipping->cost;
+        $this->total = $this->productTotal + $this->discountTotal + $this->shipping->cost;
         // taxe selon le pays
         // $this->tax = $this->taxService->calculate($this);
     }

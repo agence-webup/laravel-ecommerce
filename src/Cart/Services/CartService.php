@@ -5,8 +5,8 @@ namespace Webup\Ecommerce\Cart\Services;
 use Illuminate\Support\Str;
 use Webup\Ecommerce\Cart\Entities\Address;
 use Webup\Ecommerce\Cart\Entities\Cart;
-use Webup\Ecommerce\Cart\Entities\CartProduct;
-use Webup\Ecommerce\Cart\Repositories\CartProductRepository;
+use Webup\Ecommerce\Cart\Entities\Product;
+use Webup\Ecommerce\Cart\Repositories\ProductRepository;
 use Webup\Ecommerce\Cart\Repositories\CartRepository;
 
 class CartService
@@ -14,26 +14,26 @@ class CartService
     protected $productRepository;
     protected $cartRepository;
 
-    public function __construct(CartProductRepository $productRepository, CartRepository $cartRepository)
+    public function __construct(ProductRepository $productRepository, CartRepository $cartRepository)
     {
         $this->productRepository = $productRepository;
         $this->cartRepository = $cartRepository;
     }
 
-    public function createCart(): Cart
+    public function createCart() : Cart
     {
-        $cart = new Cart((string) Str::uuid());
+        $cart = new Cart((string)Str::uuid());
         $this->cartRepository->save($cart);
 
         return $cart;
     }
 
-    public function getCart(string $cartId): ?Cart
+    public function getCart(string $cartId) : ? Cart
     {
         return $this->cartRepository->getById($cartId);
     }
 
-    public function setProduct($cartId, CartProduct $cartProduct, int $quantity)
+    public function setProduct($cartId, Product $Product, int $quantity)
     {
         $cart = $this->cartRepository->getById($cartId);
         if (!$cart) {
@@ -41,11 +41,11 @@ class CartService
         }
 
         if ($quantity === 0) {
-            $cart->removeProduct($cartProduct);
+            $cart->removeProduct($Product);
         } else {
-            $cartProduct->setQuantity($quantity);
+            $Product->setQuantity($quantity);
             // TODO: Check stock
-            $cart->putProduct($cartProduct);
+            $cart->putProduct($Product);
         }
 
         $this->update($cart);

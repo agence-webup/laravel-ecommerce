@@ -6,49 +6,86 @@ use JsonSerializable;
 use Webup\Ecommerce\Traits\ReadOnlyProperties;
 use Webup\Ecommerce\Cart\Entities\Address;
 use Webup\Ecommerce\Cart\Entities\Shipping;
-use Webup\Ecommerce\Cart\Entities\CartProduct;
+use Webup\Ecommerce\Cart\Entities\Product;
+use Webup\Ecommerce\Cart\Entities\Customer;
 
 class Cart implements JsonSerializable
 {
     use ReadOnlyProperties;
 
     protected $uuid;
-    protected $deliveryAddress;
-    protected $invoiceAddress;
+    protected $customer;
+    protected $delivery_address;
+    protected $invoice_address;
     protected $products;
-    protected $productCount;
-    protected $productTotal;
+    protected $product_count;
+    protected $product_total;
     protected $discounts;
-    protected $discountTotal;
+    protected $discount_total;
     protected $shipping;
-    protected $total;
+    protected $total_ht;
     protected $tax;
+    protected $total;
+    protected $metadata;
 
     public function __construct(string $uuid)
     {
         $this->uuid = $uuid;
-        $this->deliveryAddress = new Address();
-        $this->invoiceAddress = new Address();
+        $this->customer = null;
+        $this->delivery_address = null;
+        $this->invoice_address = null;
         $this->products = [];
-        $this->productCount = 0;
-        $this->productTotal = 0;
+        $this->product_count = 0;
+        $this->product_total = 0;
         $this->discounts = [];
-        $this->discountTotal = 0;
+        $this->discount_total = 0;
         $this->shipping = new Shipping();
-        $this->total = 0;
+        $this->total_ht = 0;
         $this->tax = 0;
+        $this->total = 0;
     }
 
-    public function putProduct(CartProduct $product)
+    public function putProduct(Product $product)
     {
-        $this->products[$product->productId] = $product;
-    }
-
-    public function removeProduct(CartProduct $product)
-    {
-        if (array_key_exists($product->productId, $this->products)) {
-            unset($this->products[$product->productId]);
+        $found = false;
+        foreach ($this->products as $key => $p) {
+            if ($p->product_id == $product->product_id) {
+                $this->products[$key] = $product;
+                $found = true;
+            }
         }
+
+        if (!$found) {
+            $this->products[] = $product;
+        }
+
+    }
+
+    public function removeProduct(Product $product)
+    {
+        if (array_key_exists($product->product_id, $this->products)) {
+            unset($this->products[$product->product_id]);
+        }
+    }
+
+    public function setCustomer(Customer $customer)
+    {
+        $this->customer = $customer;
+    }
+
+    public function setShipping(Shipping $shipping)
+    {
+        $this->shipping = $shipping;
+    }
+
+    public function setDeliveryAddress(Address $address)
+    {
+        $this->delivery_address = $address;
+    }
+
+    public function setInvoiceAddress(Address $address)
+    {
+        $this->invoice_address = $address;
     }
 
     public function clearProducts()
@@ -63,14 +100,14 @@ class Cart implements JsonSerializable
 
     public function update()
     {
-        $productCount = 0;
-        $productTotal = 0;
+        $product_count = 0;
+        $product_total = 0;
         foreach ($this->products as $product) {
-            $productCount += $product->quantity;
-            $productTotal += $product->price * $product->quantity;
+            $product_count += $product->quantity;
+            $product_total += $product->price * $product->quantity;
         }
-        $this->productCount = $productCount;
-        $this->productTotal = $productTotal;
+        $this->product_count = $product_count;
+        $this->product_total = $product_total;
 
         // Réduction selon des régles ex: 2 achetés 3e offert
         // $discountRules = $this->discountRuleRepository->all();
@@ -78,15 +115,15 @@ class Cart implements JsonSerializable
         //     $discountRule->apply($this);
         // }
 
-        $discountTotal = 0;
+        $discount_total = 0;
         foreach ($this->discounts as $discount) {
-            $discountTotal += $discount->amount;
+            $discount_total += $discount->amount;
         }
-        $this->discountTotal = $discountTotal;
+        $this->discount_total = $discount_total;
 
         // Frais de port selon l'addresse
         // $this->shipping = $this->shipping->calculate($this);
-        $this->total = $this->productTotal + $this->discountTotal + $this->shipping->cost;
+        $this->total = $this->product_total + $this->discount_total + $this->shipping->cost;
         // taxe selon le pays
         // $this->tax = $this->taxService->calculate($this);
     }

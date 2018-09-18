@@ -5,11 +5,11 @@ namespace Webup\Ecommerce\Cart\Entities;
 use JsonSerializable;
 use Webup\Ecommerce\Traits\ReadOnlyProperties;
 
-class CartProduct implements JsonSerializable
+class Product implements JsonSerializable
 {
     use ReadOnlyProperties;
 
-    protected $productId;
+    protected $product_id;
     protected $name;
     protected $price;
     protected $quantity;
@@ -18,7 +18,7 @@ class CartProduct implements JsonSerializable
 
     public function __construct(array $data)
     {
-        $this->productId = $data["productId"];
+        $this->product_id = $data["product_id"];
         $this->name = $data["name"];
         $this->price = $data["price"];
         $this->metadata = array_get($data, "metadata", []);

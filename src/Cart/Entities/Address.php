@@ -10,6 +10,7 @@ class Address implements JsonSerializable
 {
     use ReadOnlyProperties;
 
+    protected $id;
     protected $company;
     protected $firstname;
     protected $lastname;
@@ -20,6 +21,31 @@ class Address implements JsonSerializable
     protected $postcode;
     protected $city;
     protected $country;
+    protected $metadata;
+
+
+
+    public static function createFromArray(array $data)
+    {
+        $address = new Address();
+
+        $address->id = array_get($data, "id", null);
+        $address->company = array_get($data, "company", null);
+        $address->firstname = array_get($data, "firstname", null);
+        $address->lastname = array_get($data, "lastname", null);
+        $address->email = array_get($data, "email", null);
+        $address->phone = array_get($data, "phone", null);
+        $address->address1 = array_get($data, "address1", null);
+        $address->address2 = array_get($data, "address2", null);
+        $address->postcode = array_get($data, "postcode", null);
+        $address->city = array_get($data, "city", null);
+        $address->country = array_get($data, "country", null);
+        $address->metadata = array_get($data, "metadata", []);
+
+
+        return $address;
+    }
+
 
     public function jsonSerialize()
     {

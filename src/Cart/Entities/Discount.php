@@ -6,12 +6,12 @@ use JsonSerializable;
 use Webup\Ecommerce\Traits\ReadOnlyProperties;
 
 
-class CartDiscount implements JsonSerializable
+class Discount implements JsonSerializable
 {
     use ReadOnlyProperties;
 
     protected $name;
-    protected $valueType;
+    protected $value_type;
     protected $value;
 
     public function jsonSerialize()

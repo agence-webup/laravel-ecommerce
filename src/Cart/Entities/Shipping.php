@@ -10,6 +10,7 @@ class Shipping
 
     protected $cost;
     protected $carrier;
+    protected $metadata;
 
 
     public static function createFromArray(array $data)
@@ -17,6 +18,8 @@ class Shipping
         $shipping = new Shipping();
         $shipping->cost = array_get($data, "cost", null);
         $shipping->carrier = array_get($data, "carrier", null);
+        $shipping->metadata = array_get($data, "metadata", []);
+
         return $shipping;
     }
 }

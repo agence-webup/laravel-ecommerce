@@ -63,8 +63,11 @@ class Cart implements JsonSerializable
 
     public function removeProduct(Product $product)
     {
-        if (array_key_exists($product->product_id, $this->products)) {
-            unset($this->products[$product->product_id]);
+        foreach ($this->products as $key => $cartProduct) {
+            if ($cartProduct->product_id == $product->product_id) {
+                unset($this->products[$key]);
+                break;
+            }
         }
     }
 

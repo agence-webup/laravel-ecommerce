@@ -5,7 +5,6 @@ namespace Webup\Ecommerce\Cart\Entities;
 use JsonSerializable;
 use Webup\Ecommerce\Traits\ReadOnlyProperties;
 
-
 class Address implements JsonSerializable
 {
     use ReadOnlyProperties;
@@ -22,8 +21,6 @@ class Address implements JsonSerializable
     protected $city;
     protected $country;
     protected $metadata;
-
-
 
     public static function createFromArray(array $data)
     {
@@ -42,10 +39,17 @@ class Address implements JsonSerializable
         $address->country = array_get($data, "country", null);
         $address->metadata = array_get($data, "metadata", []);
 
-
         return $address;
     }
 
+    public function getMeta($name)
+    {
+        if (array_key_exists($name, $this->metadata)) {
+            return $this->metadata[$name];
+        }
+
+        return null;
+    }
 
     public function jsonSerialize()
     {

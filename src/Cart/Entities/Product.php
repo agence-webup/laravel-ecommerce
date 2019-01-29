@@ -15,7 +15,6 @@ class Product implements JsonSerializable
     protected $quantity;
     protected $metadata;
 
-
     public function __construct(array $data)
     {
         $this->product_id = $data["product_id"];
@@ -27,6 +26,15 @@ class Product implements JsonSerializable
     public function setQuantity(int $quantity)
     {
         $this->quantity = $quantity;
+    }
+
+    public function getMeta($name)
+    {
+        if (array_key_exists($name, $this->metadata)) {
+            return $this->metadata[$name];
+        }
+
+        return null;
     }
 
     public function jsonSerialize()

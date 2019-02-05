@@ -43,6 +43,7 @@ class Cart implements JsonSerializable
         $this->total_ht = 0;
         $this->tax = 0;
         $this->total = 0;
+        $this->metadata = [];
     }
 
     public function putProduct(Product $product)
@@ -99,6 +100,19 @@ class Cart implements JsonSerializable
     public function clearDiscounts()
     {
         $this->discounts = [];
+    }
+    
+    public function setMeta($name, $value)
+    {
+        $this->metadata[$name] = $value;
+    }
+
+    public function getMeta($name)
+    {
+        if (array_key_exists($name, $this->metadata)) {
+            return $this->metadata[$name];
+        }
+        return null;
     }
 
     public function update()

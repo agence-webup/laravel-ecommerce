@@ -12,6 +12,8 @@ class Product implements JsonSerializable
     protected $product_id;
     protected $name;
     protected $price;
+    protected $discount_price;
+    protected $discount_label;
     protected $quantity;
     protected $metadata;
 
@@ -20,6 +22,8 @@ class Product implements JsonSerializable
         $this->product_id = $data["product_id"];
         $this->name = $data["name"];
         $this->price = $data["price"];
+        $this->discount_price = $data["discount_price"];
+        $this->discount_label = $data["discount_label"];
         $this->metadata = array_get($data, "metadata", []);
     }
 

@@ -20,8 +20,13 @@ class Cart implements JsonSerializable
     protected $products;
     protected $product_count;
     protected $product_total;
+    protected $product_prices;
+    protected $product_vouchers;
     protected $discounts;
     protected $discount_total;
+    protected $products_discounts_total;
+    protected $vouchers_discounts_total;
+    protected $shipping_discounts_total;
     protected $shipping;
     protected $total_ht;
     protected $tax;
@@ -37,8 +42,15 @@ class Cart implements JsonSerializable
         $this->products = [];
         $this->product_count = 0;
         $this->product_total = 0;
-        $this->discounts = [];
+        $this->product_prices = [];
+        $this->discounts = array(
+            'discounts' => array(),
+            'vouchers' => array(),
+        );
         $this->discount_total = 0;
+        $this->products_discounts_total = 0;
+        $this->vouchers_discounts_total = 0;
+        $this->shipping_discounts_total = 0;
         $this->shipping = new Shipping();
         $this->total_ht = 0;
         $this->tax = 0;
@@ -99,12 +111,35 @@ class Cart implements JsonSerializable
 
     public function clearDiscounts()
     {
+        $this->product_prices = [];
+        $this->product_vouchers = [];
         $this->discounts = [];
     }
-    
+
     public function setMeta($name, $value)
     {
         $this->metadata[$name] = $value;
+    }
+
+    public function addVoucher($voucher, $productsMatchs = array())
+    {
+        $discount = new Discount($voucher->code, Discount::TYPE_VOUCHER, $voucher->discount_type, $voucher->value, $voucher->products_scope, $productsMatchs);
+        $this->addDiscount($discount);
+    }
+
+    public function addDiscount(Discount $discount)
+    {
+        switch ($discount->type) {
+            case Discount::TYPE_VOUCHER:
+                $this->discounts['vouchers'][] = $discount;
+                break;
+            case Discount::TYPE_DISCOUNT:
+                $this->discounts['discounts'][] = $discount;
+                break;
+            default:
+                break;
+        }
+        // $this->discounts[] = $discount;
     }
 
     public function getMeta($name)
@@ -119,28 +154,63 @@ class Cart implements JsonSerializable
     {
         $product_count = 0;
         $product_total = 0;
+
+        $discount_total = 0;
+        $products_discounts_total = 0;
+        $vouchers_discounts_total = 0;
+        $shipping_discounts_total = 0;
+
         foreach ($this->products as $product) {
             $product_count += $product->quantity;
-            $product_total += $product->price * $product->quantity;
+            $product_cost = $product->price * $product->quantity;
+            $product_total += $product_cost;
+            if ($product->discount_price && $product->discount_price > $product_price) {
+                $discount_price = round($product->price, 2) - round($product->discount_price, 2);
+                $products_discounts_total += $discount_price * $product->quantity;
+                $discount = new Discount($product->discount_label, Discount::TYPE_DISCOUNT, Discount::DISCOUNT_TYPE_FLAT, $discount_price, Discount::PRODUCT_SCOPE_PRODUCT_CUSTOM, array($product->product_id));
+                $this->discounts['discounts'][] = $discount;
+                $this->product_prices[$product->product_id] = array(
+                    'quantity' => $product->quantity,
+                    'price' => $discount_price, // value is flat and precalculated from database from the batch job
+                    'computedPrice' => $discount_price * $product->quantity,
+                );
+            } else {
+                $this->product_prices[$product->product_id] = array(
+                    'quantity' => $product->quantity,
+                    'price' => $product->price, // value is flat and precalculated from database from the batch job
+                    'computedPrice' => $product_cost,
+                );
+            }
         }
         $this->product_count = $product_count;
         $this->product_total = $product_total;
 
-        // Réduction selon des régles ex: 2 achetés 3e offert
-        // $discountRules = $this->discountRuleRepository->all();
-        // foreach ($discountRules as $discountRule) {
-        //     $discountRule->apply($this);
-        // }
+        $this->shipping = $this->shipping->calculate($this);
 
-        $discount_total = 0;
-        foreach ($this->discounts as $discount) {
-            $discount_total += $discount->amount;
+
+        foreach ($this->discounts['vouchers'] as $discount) {
+            $discountApplication = $discount->getDiscountApplication($this->product_total, $this->shipping->cost);
+            $vouchers_discounts_total += $discountApplication['total'];
+            $shipping_discounts_total += $discountApplication['shipping'];
+            if (!empty($discountApplication['products'])) {
+                foreach ($discountApplication['products'] as $productId => $productDiscount) {
+                    $this->product_prices[$productId]['price'] -= $productDiscount;
+                    $this->product_prices[$productId]['computedPrice'] = $this->product_prices[$productId]['price'] * $this->product_prices[$productId]['quantity'];
+                    $vouchers_discounts_total += $productDiscount * $this->product_prices[$productId]['quantity'];
+                }
+            }
         }
+
+
+
+        $this->products_discounts_total = round($products_discounts_total, 2);
+        $this->vouchers_discounts_total = round($vouchers_discounts_total, 2);
+        $this->shipping_discounts_total = round($shipping_discounts_total, 2);
+
+        $discount_total = round($products_discounts_total + $vouchers_discounts_total + $shipping_discounts_total, 2);
         $this->discount_total = $discount_total;
 
-        // Frais de port selon l'addresse
-        // $this->shipping = $this->shipping->calculate($this);
-        $this->total = $this->product_total + $this->discount_total + $this->shipping->cost;
+        $this->total = round($this->product_total - $this->discount_total + $this->shipping->cost, 2);
         // taxe selon le pays
         // $this->tax = $this->taxService->calculate($this);
     }

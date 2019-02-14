@@ -124,6 +124,22 @@ class Discount implements JsonSerializable
         return round($price, 2);
     }
 
+    public function getFormattedDiscountLabel()
+    {
+        $result = "";
+        switch ($this->discount_type) {
+            case self::DISCOUNT_TYPE_FLAT: // retrieve a flat value
+                $result = "-" . $this->value . "€";
+                break;
+            case self::DISCOUNT_TYPE_PERCENT: // retrieve a percent value (20/30/40%)
+                $result = $this->value . "%";
+                break;
+            default:
+                break;
+        }
+        return $result;
+    }
+
     public function jsonSerialize()
     {
         return get_object_vars($this);

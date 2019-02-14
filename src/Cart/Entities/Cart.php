@@ -127,6 +127,16 @@ class Cart implements JsonSerializable
         $this->addDiscount($discount);
     }
 
+    public function removeVoucher($voucherCode)
+    {
+        foreach (array_get($this->discounts, "vouchers", []) as $key => $voucher) {
+            if ($voucher->name == $voucherCode) {
+                unset($this->discounts["vouchers"][$key]);
+                break;
+            }
+        }
+    }
+
     public function addDiscount(Discount $discount)
     {
         switch ($discount->type) {
@@ -185,7 +195,7 @@ class Cart implements JsonSerializable
         $this->product_count = $product_count;
         $this->product_total = $product_total;
 
-        $this->shipping = $this->shipping->calculate($this);
+        // $this->shipping = $this->shipping->calculate($this);
 
 
         foreach ($this->discounts['vouchers'] as $discount) {

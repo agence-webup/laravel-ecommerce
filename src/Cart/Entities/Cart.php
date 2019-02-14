@@ -8,6 +8,7 @@ use Webup\Ecommerce\Cart\Entities\Address;
 use Webup\Ecommerce\Cart\Entities\Shipping;
 use Webup\Ecommerce\Cart\Entities\Product;
 use Webup\Ecommerce\Cart\Entities\Customer;
+use Webup\Ecommerce\Cart\DiscountInterface;
 
 class Cart implements JsonSerializable
 {
@@ -43,10 +44,7 @@ class Cart implements JsonSerializable
         $this->product_count = 0;
         $this->product_total = 0;
         $this->product_prices = [];
-        $this->discounts = array(
-            'discounts' => array(),
-            'vouchers' => array(),
-        );
+        $this->discounts = [];
         $this->discount_total = 0;
         $this->products_discounts_total = 0;
         $this->vouchers_discounts_total = 0;
@@ -121,17 +119,11 @@ class Cart implements JsonSerializable
         $this->metadata[$name] = $value;
     }
 
-    public function addVoucher($voucher, $productsMatchs = array())
+    public function removeDiscount($id)
     {
-        $discount = new Discount($voucher->code, Discount::TYPE_VOUCHER, $voucher->discount_type, $voucher->value, $voucher->products_scope, $productsMatchs);
-        $this->addDiscount($discount);
-    }
-
-    public function removeVoucher($voucherCode)
-    {
-        foreach (array_get($this->discounts, "vouchers", []) as $key => $voucher) {
-            if ($voucher->name == $voucherCode) {
-                unset($this->discounts["vouchers"][$key]);
+        foreach ($this->discounts as $key => $discount) {
+            if ($discount->id == $id && $discount->deletable) {
+                unset($this->discounts[$key]);
                 break;
             }
         }
@@ -139,17 +131,7 @@ class Cart implements JsonSerializable
 
     public function addDiscount(Discount $discount)
     {
-        switch ($discount->type) {
-            case Discount::TYPE_VOUCHER:
-                $this->discounts['vouchers'][] = $discount;
-                break;
-            case Discount::TYPE_DISCOUNT:
-                $this->discounts['discounts'][] = $discount;
-                break;
-            default:
-                break;
-        }
-        // $this->discounts[] = $discount;
+        $this->discounts[] = $discount;
     }
 
     public function getMeta($name)
@@ -162,18 +144,17 @@ class Cart implements JsonSerializable
 
     public function update()
     {
-        $product_count = 0;
-        $product_total = 0;
-
-        $discount_total = 0;
-        $products_discounts_total = 0;
-        $vouchers_discounts_total = 0;
-        $shipping_discounts_total = 0;
+        $this->product_count = 0;
+        $this->product_total = 0;
+        $this->products_discounts_total = 0;
+        $this->vouchers_discounts_total = 0;
+        $this->shipping_discounts_total = 0;
+        $this->discount_total = 0;
 
         foreach ($this->products as $product) {
-            $product_count += $product->quantity;
+            $this->product_count += $product->quantity;
             $product_cost = $product->price * $product->quantity;
-            $product_total += $product_cost;
+            $this->product_total += $product_cost;
             if ($product->discount_price && $product->discount_price > $product_price) {
                 $discount_price = round($product->price, 2) - round($product->discount_price, 2);
                 $products_discounts_total += $discount_price * $product->quantity;
@@ -192,35 +173,24 @@ class Cart implements JsonSerializable
                 );
             }
         }
-        $this->product_count = $product_count;
-        $this->product_total = $product_total;
 
         // $this->shipping = $this->shipping->calculate($this);
 
+        $this->total = $this->product_total - $this->discount_total;
 
-        foreach ($this->discounts['vouchers'] as $discount) {
-            $discountApplication = $discount->getDiscountApplication($this->product_total, $this->shipping->cost);
-            $vouchers_discounts_total += $discountApplication['total'];
-            $shipping_discounts_total += $discountApplication['shipping'];
-            if (!empty($discountApplication['products'])) {
-                foreach ($discountApplication['products'] as $productId => $productDiscount) {
-                    $this->product_prices[$productId]['price'] -= $productDiscount;
-                    $this->product_prices[$productId]['computedPrice'] = $this->product_prices[$productId]['price'] * $this->product_prices[$productId]['quantity'];
-                    $vouchers_discounts_total += $productDiscount * $this->product_prices[$productId]['quantity'];
-                }
-            }
+        foreach ($this->discounts as $discount) {
+            $discount->apply($this);
+
+            $this->products_discounts_total += round($discount->products_discounts, 2);
+            $this->vouchers_discounts_total += round($discount->vouchers_discounts, 2);
+            $this->shipping_discounts_total += round($discount->shipping_discounts, 2);
+
+            $this->discount_total += $discount->products_discounts + $discount->vouchers_discounts + $discount->shipping_discounts;
+            $this->total = $this->product_total - $this->discount_total;
         }
 
 
-
-        $this->products_discounts_total = round($products_discounts_total, 2);
-        $this->vouchers_discounts_total = round($vouchers_discounts_total, 2);
-        $this->shipping_discounts_total = round($shipping_discounts_total, 2);
-
-        $discount_total = round($products_discounts_total + $vouchers_discounts_total + $shipping_discounts_total, 2);
-        $this->discount_total = $discount_total;
-
-        $this->total = round($this->product_total - $this->discount_total + $this->shipping->cost, 2);
+        $this->total = round($this->total, 2);
         // taxe selon le pays
         // $this->tax = $this->taxService->calculate($this);
     }

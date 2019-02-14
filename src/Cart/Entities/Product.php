@@ -13,8 +13,10 @@ class Product implements JsonSerializable
     protected $name;
     protected $price;
     protected $discount_price;
+    protected $total_discount_price;
     protected $discount_label;
     protected $quantity;
+    protected $discounts;
     protected $metadata;
 
     public function __construct(array $data)
@@ -24,12 +26,29 @@ class Product implements JsonSerializable
         $this->price = $data["price"];
         $this->discount_price = $data["discount_price"];
         $this->discount_label = $data["discount_label"];
+        $this->discounts = [];
         $this->metadata = array_get($data, "metadata", []);
     }
 
     public function setQuantity(int $quantity)
     {
         $this->quantity = $quantity;
+    }
+
+    public function addDiscount(Discount $discount, $discountPrice)
+    {
+        $price = $this->price;
+        if ($this->discount_price) {
+            $price = $this->discount_price;
+        }
+        $this->total_discount_price = $price - $discountPrice;
+
+        $this->discounts[] = $discount;
+    }
+
+    public function clearDiscounts()
+    {
+        $this->discounts = [];
     }
 
     public function getMeta($name)

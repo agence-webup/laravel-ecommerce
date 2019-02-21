@@ -12,6 +12,7 @@ class Product implements JsonSerializable
     protected $product_id;
     protected $name;
     protected $price;
+    protected $total_price;
     protected $discount_price;
     protected $total_discount_price;
     protected $discount_label;
@@ -24,6 +25,7 @@ class Product implements JsonSerializable
         $this->product_id = $data["product_id"];
         $this->name = $data["name"];
         $this->price = $data["price"];
+        $this->total_price = $data["price"];
         $this->discount_price = $data["discount_price"];
         $this->discount_label = $data["discount_label"];
         $this->discounts = [];
@@ -33,11 +35,12 @@ class Product implements JsonSerializable
     public function setQuantity(int $quantity)
     {
         $this->quantity = $quantity;
+        $this->total_price = $this->price * $quantity;
     }
 
     public function addDiscount(Discount $discount, $discountPrice)
     {
-        $price = $this->price;
+        $price = $this->total_price;
         if ($this->discount_price) {
             $price = $this->discount_price;
         }

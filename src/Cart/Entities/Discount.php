@@ -19,10 +19,6 @@ abstract class Discount implements JsonSerializable
     protected $value;
     // scope of application : 1 = order only / 2 = order inc. shipping / 3 = product_group / 4 = specific products
     protected $discount_scope;
-    // products (declinaisons) ids concerned by the scope (faculative, depending on the discount_scope)
-    protected $products_matchs_ids;
-    // products (declinaisons) concerned by the scope (faculative, depending on the discount_scope)
-    protected $products_matchs;
     protected $metadata;
 
     protected $errorMessage;
@@ -32,18 +28,16 @@ abstract class Discount implements JsonSerializable
     protected $shipping_discounts = 0;
 
 
-    // could also use App\Values\VoucherDiscountType
     const DISCOUNT_TYPE_FLAT = 1;
     const DISCOUNT_TYPE_PERCENT = 2;
 
-    // could also use App\Values\VoucherProductScope
     const DISCOUNT_SCOPE_ORDER_ONLY = 1;
     const DISCOUNT_SCOPE_ORDER_INC_SHIPPING = 2;
     const DISCOUNT_SCOPE_PRODUCT_GROUP = 3;
     const DISCOUNT_SCOPE_PRODUCT_CUSTOM = 4;
     const DISCOUNT_SCOPE_SHIPPING_ONLY = 5;
 
-    public function __construct($id, $name, $discount_type, $value, $discount_scope, $deletable, $products_matchs = array())
+    public function __construct($id, $name, $discount_type, $value, $discount_scope, $deletable)
     {
         $this->id = $id;
         $this->deletable = $deletable;
@@ -51,7 +45,6 @@ abstract class Discount implements JsonSerializable
         $this->discount_type = $discount_type;
         $this->value = $this->cleanPercentValue($value);
         $this->discount_scope = $discount_scope;
-        $this->products_matchs = $products_matchs;
         $this->metadata = [];
         $this->errorMessage = null;
     }
@@ -77,7 +70,6 @@ abstract class Discount implements JsonSerializable
     // Apply the discount
     public function apply(Cart $cart)
     {
-
         $productsDiscounts = array();
         $totalPriceDiscounted = 0;
         $shippingPriceDiscounted = 0;
@@ -101,9 +93,9 @@ abstract class Discount implements JsonSerializable
                     break;
                 case self::DISCOUNT_SCOPE_PRODUCT_GROUP:
                 case self::DISCOUNT_SCOPE_PRODUCT_CUSTOM:
-                    foreach ($this->products_matchs as $productMatch) {
+                    foreach ($validityResponse->products_matchs as $productMatch) {
                         // only apply on base price, and not discounted price by any means, (discount_price from db or voucher usage)
-                        $discountOnPrice = $this->getDiscountOnPrice($productMatch->price);
+                        $discountOnPrice = $this->getDiscountOnPrice($productMatch->total_price);
                         $productsDiscounts[$productMatch->product_id] = $discountOnPrice;
                         // $totalPriceDiscounted += $discountOnPrice;
                     }
@@ -117,8 +109,12 @@ abstract class Discount implements JsonSerializable
         $this->shipping_discounts = $shippingPriceDiscounted;
 
         foreach ($productsDiscounts as $productId => $productDiscount) {
-            $cart->products[$productId]->addDiscount($this, $productDiscount);
-            $this->products_discounts += $cart->products[$productId]->total_discount_price;
+            foreach ($cart->products as $key => $cartProduct) {
+                if ($cartProduct->product_id == $productId) {
+                    $cart->products[$key]->addDiscount($this, $productDiscount);
+                    $this->products_discounts += $productDiscount;
+                }
+            }
         }
     }
 
@@ -159,7 +155,7 @@ abstract class Discount implements JsonSerializable
         return round($price, 2);
     }
 
-    abstract public function checkValidity(Cart $cart) : CheckDiscountValidityResponse;
+    abstract public function checkValidity(Cart $cart): CheckDiscountValidityResponse;
 
     public function jsonSerialize()
     {

@@ -69,7 +69,6 @@ class Cart implements JsonSerializable
         if (!$found) {
             $this->products[] = $product;
         }
-
     }
 
     public function removeProduct(Product $product)
@@ -152,6 +151,7 @@ class Cart implements JsonSerializable
         $this->discount_total = 0;
 
         foreach ($this->products as $product) {
+            $product->clearDiscounts();
             $this->product_count += $product->quantity;
             $product_cost = $product->price * $product->quantity;
             $this->product_total += $product_cost;

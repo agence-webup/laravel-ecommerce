@@ -3,12 +3,12 @@
 namespace Webup\Ecommerce\Cart\Entities;
 
 use JsonSerializable;
-use Webup\Ecommerce\Traits\ReadOnlyProperties;
 use Webup\Ecommerce\Cart\Entities\Address;
-use Webup\Ecommerce\Cart\Entities\Shipping;
-use Webup\Ecommerce\Cart\Entities\Product;
 use Webup\Ecommerce\Cart\Entities\Customer;
-use Webup\Ecommerce\Cart\DiscountInterface;
+use Webup\Ecommerce\Cart\Entities\Product;
+use Webup\Ecommerce\Cart\Entities\Shipping;
+use Webup\Ecommerce\Cart\Services\ShippingServiceInterface;
+use Webup\Ecommerce\Traits\ReadOnlyProperties;
 
 class Cart implements JsonSerializable
 {
@@ -141,7 +141,7 @@ class Cart implements JsonSerializable
         return null;
     }
 
-    public function update()
+    public function update(ShippingServiceInterface $shippingService)
     {
         $this->product_count = 0;
         $this->product_total = 0;
@@ -174,9 +174,13 @@ class Cart implements JsonSerializable
             }
         }
 
-        // $this->shipping = $this->shipping->calculate($this);
+        $this->shipping = Shipping::createFromArray([
+            "cost" => $shippingService->getShippingCost($this),
+            "carrier" => $this->shipping->carrier,
+            "metadata" => $this->shipping->metadata,
+        ]);
 
-        $this->total = $this->product_total - $this->discount_total;
+        $this->total = $this->product_total + $this->shipping->cost - $this->discount_total;
 
         foreach ($this->discounts as $discount) {
             $discount->apply($this);
@@ -186,9 +190,8 @@ class Cart implements JsonSerializable
             $this->shipping_discounts_total += round($discount->shipping_discounts, 2);
 
             $this->discount_total += $discount->products_discounts + $discount->vouchers_discounts + $discount->shipping_discounts;
-            $this->total = $this->product_total - $this->discount_total;
+            $this->total = $this->product_total + $this->shipping->cost - $this->discount_total;
         }
-
 
         $this->total = round($this->total, 2);
         // taxe selon le pays

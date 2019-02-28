@@ -4,7 +4,7 @@ namespace Webup\Ecommerce\Cart\Services;
 
 use Webup\Ecommerce\Cart\Entities\Cart;
 
-class ShippingService
+class ShippingService implements ShippingServiceInterface
 {
     public function getShippingCost(Cart $cart)
     {

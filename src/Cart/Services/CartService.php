@@ -6,29 +6,31 @@ use Illuminate\Support\Str;
 use Webup\Ecommerce\Cart\Entities\Address;
 use Webup\Ecommerce\Cart\Entities\Cart;
 use Webup\Ecommerce\Cart\Entities\Product;
-use Webup\Ecommerce\Cart\Repositories\ProductRepository;
 use Webup\Ecommerce\Cart\Repositories\CartRepository;
+use Webup\Ecommerce\Cart\Repositories\ProductRepository;
 
 class CartService
 {
     protected $productRepository;
     protected $cartRepository;
+    protected $shippingService;
 
-    public function __construct(ProductRepository $productRepository, CartRepository $cartRepository)
+    public function __construct(ProductRepository $productRepository, CartRepository $cartRepository, ShippingServiceInterface $shippingService)
     {
         $this->productRepository = $productRepository;
         $this->cartRepository = $cartRepository;
+        $this->shippingService = $shippingService;
     }
 
-    public function createCart() : Cart
+    public function createCart(): Cart
     {
-        $cart = new Cart((string)Str::uuid());
+        $cart = new Cart((string) Str::uuid());
         $this->cartRepository->save($cart);
 
         return $cart;
     }
 
-    public function getCart(string $cartId) : ? Cart
+    public function getCart(string $cartId): ?Cart
     {
         return $this->cartRepository->getById($cartId);
     }
@@ -96,7 +98,6 @@ class CartService
 
     protected function update(Cart $cart)
     {
-        $cart->update();
-        //$cart->update($shippingService,$discountRuleRepository);
+        $cart->update($this->shippingService);
     }
 }

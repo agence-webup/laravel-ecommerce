@@ -12,7 +12,6 @@ class Shipping
     protected $carrier;
     protected $metadata;
 
-
     public static function createFromArray(array $data)
     {
         $shipping = new Shipping();
@@ -21,5 +20,13 @@ class Shipping
         $shipping->metadata = array_get($data, "metadata", []);
 
         return $shipping;
+    }
+
+    public function getMeta($name)
+    {
+        if (array_key_exists($name, $this->metadata)) {
+            return $this->metadata[$name];
+        }
+        return null;
     }
 }

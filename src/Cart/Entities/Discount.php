@@ -68,7 +68,7 @@ abstract class Discount implements JsonSerializable
     }
 
     // Apply the discount
-    public function apply(Cart $cart)
+    public function apply(Cart $cart, $overrideAppliedDiscounts = false, $appliedDiscounts = array())
     {
         $productsDiscounts = array();
         $totalPriceDiscounted = 0;
@@ -76,7 +76,7 @@ abstract class Discount implements JsonSerializable
         $this->products_discounts = 0;
         $this->errorMessage = null;
 
-        $validityResponse = $this->checkValidity($cart);
+        $validityResponse = $this->checkValidity($cart, $overrideAppliedDiscounts, $appliedDiscounts);
 
         if ($validityResponse->success) {
             $totalPrice = $cart->product_total;
@@ -155,7 +155,7 @@ abstract class Discount implements JsonSerializable
         return round($price, 2);
     }
 
-    abstract public function checkValidity(Cart $cart): CheckDiscountValidityResponse;
+    abstract public function checkValidity(Cart $cart, $overrideAppliedDiscounts, $appliedDiscounts): CheckDiscountValidityResponse;
 
     public function jsonSerialize()
     {

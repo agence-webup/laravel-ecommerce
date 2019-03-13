@@ -182,8 +182,12 @@ class Cart implements JsonSerializable
 
         $this->total = $this->product_total + $this->shipping->cost - $this->discount_total;
 
+        $appliedDiscounts = [];
         foreach ($this->discounts as $discount) {
-            $discount->apply($this);
+            // use 2nd and 3rd parameters to override already applied discounts inside cart by a virtual list that will be filled
+            // after each discount is verified (we can't use the $cart->discounts as "appliedDiscounts" because we are fetching it
+            // and therefore can't clear it)
+            $discount->apply($this, true, $appliedDiscounts);
 
             $this->products_discounts_total += round($discount->products_discounts, 2);
             $this->vouchers_discounts_total += round($discount->vouchers_discounts, 2);
@@ -191,6 +195,7 @@ class Cart implements JsonSerializable
 
             $this->discount_total += $discount->products_discounts + $discount->vouchers_discounts + $discount->shipping_discounts;
             $this->total = $this->product_total + $this->shipping->cost - $this->discount_total;
+            $appliedDiscounts[] = $discount->getMeta('code');
         }
 
         $this->total = round($this->total, 2);

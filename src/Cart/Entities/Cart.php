@@ -174,12 +174,13 @@ class Cart implements JsonSerializable
             }
         }
 
+        //Get shipping BEFORE discount being applied
         $this->shipping = Shipping::createFromArray([
             "cost" => $shippingService->getShippingCost($this),
             "carrier" => $this->shipping->carrier,
             "metadata" => $this->shipping->metadata,
         ]);
-
+        //Recalculate total with shipping
         $this->total = $this->product_total + $this->shipping->cost - $this->discount_total;
 
         $appliedDiscounts = [];
@@ -197,6 +198,15 @@ class Cart implements JsonSerializable
             $this->total = $this->product_total + $this->shipping->cost - $this->discount_total;
             $appliedDiscounts[] = $discount->getMeta('code');
         }
+
+        //Get shipping AFTER discount being applied
+        $this->shipping = Shipping::createFromArray([
+            "cost" => $shippingService->getShippingCost($this),
+            "carrier" => $this->shipping->carrier,
+            "metadata" => $this->shipping->metadata,
+        ]);
+        //Recalculate total with shipping
+        $this->total = $this->product_total + $this->shipping->cost - $this->discount_total;
 
         $this->total = round($this->total, 2);
         // taxe selon le pays

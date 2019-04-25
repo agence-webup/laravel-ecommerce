@@ -86,6 +86,11 @@ class Cart implements JsonSerializable
         $this->customer = $customer;
     }
 
+    public function removeCustomer()
+    {
+        $this->customer = null;
+    }
+
     public function setShipping(Shipping $shipping)
     {
         $this->shipping = $shipping;

@@ -150,6 +150,7 @@ class Cart implements JsonSerializable
     {
         $this->product_count = 0;
         $this->product_total = 0;
+        $this->product_tax_total = 0;
         $this->products_discounts_total = 0;
         $this->vouchers_discounts_total = 0;
         $this->shipping_discounts_total = 0;
@@ -158,10 +159,10 @@ class Cart implements JsonSerializable
         foreach ($this->products as $product) {
             $product->clearDiscounts();
             $this->product_count += $product->quantity;
-            $product_cost = $product->price * $product->quantity;
-            $this->product_total += $product_cost;
+            $this->product_total += $product->total_price->getTaxedPrice();
+            $this->product_tax_total += $product->total_price->getTax();
             if ($product->discount_price && $product->discount_price > $product_price) {
-                $discount_price = round($product->price, 2) - round($product->discount_price, 2);
+                $discount_price = round($product->price->getTaxedPrice(), 2) - round($product->discount_price, 2);
                 $products_discounts_total += $discount_price * $product->quantity;
                 $discount = new Discount($product->discount_label, Discount::TYPE_DISCOUNT, Discount::DISCOUNT_TYPE_FLAT, $discount_price, Discount::PRODUCT_SCOPE_PRODUCT_CUSTOM, array($product->product_id));
                 $this->discounts['discounts'][] = $discount;
@@ -173,8 +174,8 @@ class Cart implements JsonSerializable
             } else {
                 $this->product_prices[$product->product_id] = array(
                     'quantity' => $product->quantity,
-                    'price' => $product->price, // value is flat and precalculated from database from the batch job
-                    'computedPrice' => $product_cost,
+                    'price' => $product->price->getTaxedPrice(), // value is flat and precalculated from database from the batch job
+                    'computedPrice' => $product->total_price->getTaxedPrice(),
                 );
             }
         }
@@ -186,7 +187,7 @@ class Cart implements JsonSerializable
             "metadata" => $this->shipping->metadata,
         ]);
         //Recalculate total with shipping
-        $this->total = $this->product_total + $this->shipping->cost - $this->discount_total;
+        $this->temp_total = $this->product_total + $this->shipping->cost - $this->discount_total;
 
         $appliedDiscounts = [];
         foreach ($this->discounts as $discount) {
@@ -200,7 +201,7 @@ class Cart implements JsonSerializable
             $this->shipping_discounts_total += round($discount->shipping_discounts, 2);
 
             $this->discount_total += $discount->products_discounts + $discount->vouchers_discounts + $discount->shipping_discounts;
-            $this->total = $this->product_total + $this->shipping->cost - $this->discount_total;
+            $this->temp_total = $this->product_total + $this->shipping->cost - $this->discount_total;
             $appliedDiscounts[] = $discount->getMeta('code');
         }
 
@@ -211,11 +212,11 @@ class Cart implements JsonSerializable
             "metadata" => $this->shipping->metadata,
         ]);
         //Recalculate total with shipping
-        $this->total = $this->product_total + $this->shipping->cost - $this->discount_total;
+        $this->temp_total = $this->product_total + $this->shipping->cost - $this->discount_total;
 
-        $this->total = round($this->total, 2);
-        // taxe selon le pays
-        // $this->tax = $this->taxService->calculate($this);
+        $this->total = round($this->temp_total, 2);
+        $this->tax = round($this->product_tax_total, 2);
+        $this->total_ht = round($this->temp_total - $this->product_tax_total, 2);
     }
 
     public function jsonSerialize()

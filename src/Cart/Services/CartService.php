@@ -24,7 +24,7 @@ class CartService
 
     public function createCart(): Cart
     {
-        $cart = new Cart((string) Str::uuid());
+        $cart = new Cart((string)Str::uuid());
         $this->cartRepository->save($cart);
 
         return $cart;

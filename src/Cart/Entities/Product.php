@@ -4,6 +4,7 @@ namespace Webup\Ecommerce\Cart\Entities;
 
 use JsonSerializable;
 use Webup\Ecommerce\Traits\ReadOnlyProperties;
+use Webup\Ecommerce\Values\Price;
 
 class Product implements JsonSerializable
 {
@@ -25,7 +26,7 @@ class Product implements JsonSerializable
         $this->product_id = $data["product_id"];
         $this->name = $data["name"];
         $this->price = $data["price"];
-        $this->total_price = $data["price"];
+        $this->total_price = new Price(0, 0);
         $this->discount_price = $data["discount_price"];
         $this->discount_label = $data["discount_label"];
         $this->discounts = [];
@@ -35,7 +36,7 @@ class Product implements JsonSerializable
     public function setQuantity(int $quantity)
     {
         $this->quantity = $quantity;
-        $this->total_price = $this->price * $quantity;
+        $this->total_price = $this->price->copy()->multiply($quantity);
     }
 
     public function addDiscount(Discount $discount, $discountPrice)

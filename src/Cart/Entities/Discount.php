@@ -43,7 +43,7 @@ abstract class Discount implements JsonSerializable
         $this->deletable = $deletable;
         $this->name = $name;
         $this->discount_type = $discount_type;
-        $this->value = $this->cleanPercentValue($value);
+        $this->value = ($discount_type == self::DISCOUNT_TYPE_PERCENT) ? $this->cleanPercentValue($value) : $value;
         $this->discount_scope = $discount_scope;
         $this->metadata = [];
         $this->errorMessage = null;

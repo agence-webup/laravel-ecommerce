@@ -12,7 +12,8 @@ class Product implements JsonSerializable
 
     protected $product_id;
     protected $name;
-    protected $price;
+    protected $price;   // current price (with discount if any)
+    protected $original_price;  // the standard price (without discount)
     protected $total_price;
     protected $discount_price;
     protected $total_discount_price;
@@ -26,6 +27,7 @@ class Product implements JsonSerializable
         $this->product_id = $data["product_id"];
         $this->name = $data["name"];
         $this->price = $data["price"];
+        $this->original_price = $data['original_price'];
         $this->total_price = new Price(0, 0);
         $this->discount_price = $data["discount_price"];
         $this->discount_label = $data["discount_label"];

@@ -109,6 +109,7 @@ class Cart implements JsonSerializable
     public function clearProducts()
     {
         $this->products = [];
+        $this->product_prices = [];
     }
 
     public function clearDiscounts()

@@ -17,6 +17,8 @@ class Address implements JsonSerializable
     protected $phone;
     protected $address1;
     protected $address2;
+    protected $floor;
+    protected $elevator;
     protected $postcode;
     protected $city;
     protected $country;
@@ -34,6 +36,8 @@ class Address implements JsonSerializable
         $address->phone = array_get($data, "phone", null);
         $address->address1 = array_get($data, "address1", null);
         $address->address2 = array_get($data, "address2", null);
+        $address->floor = array_get($data, "floor", null);
+        $address->elevator = array_get($data, "elevator", null);
         $address->postcode = array_get($data, "postcode", null);
         $address->city = array_get($data, "city", null);
         $address->country = array_get($data, "country", null);

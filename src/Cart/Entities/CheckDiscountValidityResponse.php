@@ -27,7 +27,7 @@ class CheckDiscountValidityResponse implements JsonSerializable
         $this->products_matchs = $products_matchs;
     }
 
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return get_object_vars($this);
     }

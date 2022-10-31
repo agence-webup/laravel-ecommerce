@@ -23,6 +23,7 @@ class Cart implements JsonSerializable
     protected $product_total;
     protected $product_prices;
     protected $product_vouchers;
+    protected $warranty_total;
     protected $discounts;
     protected $discount_total;
     protected $products_discounts_total;
@@ -43,6 +44,7 @@ class Cart implements JsonSerializable
         $this->products = [];
         $this->product_count = 0;
         $this->product_total = 0;
+        $this->warranty_total = 0;
         $this->product_prices = [];
         $this->discounts = [];
         $this->discount_total = 0;
@@ -110,6 +112,7 @@ class Cart implements JsonSerializable
     {
         $this->products = [];
         $this->product_prices = [];
+        $this->warranty_total = 0;
     }
 
     public function clearDiscounts()
@@ -155,12 +158,20 @@ class Cart implements JsonSerializable
         $this->vouchers_discounts_total = 0;
         $this->shipping_discounts_total = 0;
         $this->discount_total = 0;
+        $this->warranty_total = 0;
 
         foreach ($this->products as $product) {
             $product->clearDiscounts();
             $this->product_count += $product->quantity;
             $product_cost = $product->price * $product->quantity;
             $this->product_total += $product_cost;
+
+            $warranty_id = $product->getMeta('warranty_id');
+            $warranty_price = $product->getMeta('warranty_price');
+            if ($warranty_id && $warranty_price) {
+                $this->warranty_total += $warranty_price * $product->quantity;
+            }
+
             if ($product->discount_price && $product->discount_price > $product_price) {
                 $discount_price = round($product->price, 2) - round($product->discount_price, 2);
                 $products_discounts_total += $discount_price * $product->quantity;
@@ -201,7 +212,7 @@ class Cart implements JsonSerializable
             $this->shipping_discounts_total += round($discount->shipping_discounts, 2);
 
             $this->discount_total += $discount->products_discounts + $discount->vouchers_discounts + $discount->shipping_discounts;
-            $this->total = $this->product_total + $this->shipping->cost - $this->discount_total;
+            $this->total = $this->product_total + $this->shipping->cost + $this->warranty_total - $this->discount_total;
             $appliedDiscounts[] = $discount->getMeta('code');
         }
 
@@ -212,7 +223,7 @@ class Cart implements JsonSerializable
             "metadata" => $this->shipping->metadata,
         ]);
         //Recalculate total with shipping
-        $this->total = $this->product_total + $this->shipping->cost - $this->discount_total;
+        $this->total = $this->product_total + $this->shipping->cost + $this->warranty_total - $this->discount_total;
 
         $this->total = round($this->total, 2);
         // taxe selon le pays

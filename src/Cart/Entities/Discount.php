@@ -81,25 +81,27 @@ abstract class Discount implements JsonSerializable
         if ($validityResponse->success) {
             $totalPrice = $cart->product_total;
             $shippingPrice = $cart->shipping->cost;
-            switch ($this->discount_scope) {
-                case self::DISCOUNT_SCOPE_ORDER_ONLY:
-                    $totalPriceDiscounted = $this->getDiscountOnPrice($totalPrice);
-                    break;
-                case self::DISCOUNT_SCOPE_ORDER_INC_SHIPPING:
-                    $totalPriceDiscounted = $this->getDiscountOnPrice($totalPrice + $shippingPrice);
-                    break;
-                case self::DISCOUNT_SCOPE_SHIPPING_ONLY:
-                    $shippingPriceDiscounted = $this->getDiscountOnPrice($shippingPrice);
-                    break;
-                case self::DISCOUNT_SCOPE_PRODUCT_GROUP:
-                case self::DISCOUNT_SCOPE_PRODUCT_CUSTOM:
-                    foreach ($validityResponse->products_matchs as $productMatch) {
-                        // only apply on base price, and not discounted price by any means, (discount_price from db or voucher usage)
-                        $discountOnPrice = $this->getDiscountOnPrice($productMatch->total_price);
-                        $productsDiscounts[$productMatch->product_id] = $discountOnPrice;
-                        // $totalPriceDiscounted += $discountOnPrice;
-                    }
-                    break;
+
+            // since it's a protected property we must copy the products_matchs attribute to another variable to get the empty() function to work
+            $productMatchs = $validityResponse->products_matchs;
+            if ($this->discount_scope !== self::DISCOUNT_SCOPE_SHIPPING_ONLY && !empty($productMatchs)) {
+                $productsDiscounts = $this->getDiscountOnProducts($validityResponse->products_matchs);
+            } else {
+                switch ($this->discount_scope) {
+                    case self::DISCOUNT_SCOPE_ORDER_ONLY:
+                        $totalPriceDiscounted = $this->getDiscountOnPrice($totalPrice);
+                        break;
+                    case self::DISCOUNT_SCOPE_ORDER_INC_SHIPPING:
+                        $totalPriceDiscounted = $this->getDiscountOnPrice($totalPrice + $shippingPrice);
+                        break;
+                    case self::DISCOUNT_SCOPE_SHIPPING_ONLY:
+                        $shippingPriceDiscounted = $this->getDiscountOnPrice($shippingPrice);
+                        break;
+                    case self::DISCOUNT_SCOPE_PRODUCT_GROUP:
+                    case self::DISCOUNT_SCOPE_PRODUCT_CUSTOM:
+                        $productsDiscounts = $this->getDiscountOnProducts($validityResponse->products_matchs);
+                        break;
+                }
             }
         } else {
             $this->errorMessage = $validityResponse->message;
@@ -153,6 +155,39 @@ abstract class Discount implements JsonSerializable
                 break;
         }
         return round($price, 2);
+    }
+
+    protected function getDiscountOnProducts($productsMatchs) {
+        $appliedDiscount = 0;
+        $productsDiscounts = [];
+        foreach ($productsMatchs as $productMatch) {
+            // for a percent discount, repeat on each matched products
+            if ($this->discount_type == self::DISCOUNT_TYPE_PERCENT) {
+                // only apply on base price, and not discounted price by any means, (discount_price from db or voucher usage)
+                $discountOnPrice = $this->getDiscountOnPrice($productMatch->total_price);
+                $productsDiscounts[$productMatch->product_id] = $discountOnPrice;
+                // $totalPriceDiscounted += $discountOnPrice;
+            } else if ($this->discount_type == self::DISCOUNT_TYPE_FLAT) {
+                // for a flat discount, apply it on each matched product until we reach the desired amount
+                $discountOnPrice = $this->getDiscountOnPrice($productMatch->total_price);
+                $appliedDiscount += $discountOnPrice;
+
+                // if the total applied discount exceed the voucher flat value, cap it to voucher flat value
+                if ($appliedDiscount > $this->value) {
+                    // Example :
+                    // voucher value = 50€
+                    // ex-appliedDiscount = 40€ (already deducted on the previous products)
+                    // discountOnPrice = 30€ (for the current product)
+                    // current appliedDiscount = 70€ (40 + 30), which is more than voucher value, we will need to cap discountOnPrice
+                    // new discountOnPrice = voucher value - (appliedDiscount - discountOnPrice) 50 - (70 - 30) = 10€
+                    // appliedDiscount will now be 50€ (previously 40€ + 10€ now)
+                    $discountOnPrice = $this->value - ($appliedDiscount - $discountOnPrice);
+                    $appliedDiscount = $this->value;
+                }
+                $productsDiscounts[$productMatch->product_id] = $discountOnPrice;
+            }
+        }
+        return $productsDiscounts;
     }
 
     abstract public function checkValidity(Cart $cart, $overrideAppliedDiscounts, $appliedDiscounts): CheckDiscountValidityResponse;

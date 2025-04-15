@@ -20,6 +20,11 @@ class Product implements JsonSerializable
     protected $discounts;
     protected $metadata;
 
+    // Used to store the product object
+    // must stay public to be used freely
+    public $product;
+
+
     public function __construct(array $data)
     {
         $this->product_id = $data["product_id"];

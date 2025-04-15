@@ -14,6 +14,7 @@ class Customer implements JsonSerializable
     protected $firstname;
     protected $lastname;
     protected $email;
+    protected $metadata;
 
     public static function createFromArray(array $data)
     {
